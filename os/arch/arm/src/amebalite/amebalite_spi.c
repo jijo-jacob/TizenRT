@@ -871,7 +871,9 @@ static uint16_t amebalite_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
 	FAR struct amebalite_spidev_s *priv = (FAR struct amebalite_spidev_s *)dev;
 
 	uint16_t ret = 0;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return 0;
+	}
 
 	if (priv->role == AMEBALITE_SPI_MASTER) {
 
@@ -923,7 +925,10 @@ static void amebalite_spi_exchange_nodma(FAR struct spi_dev_s *dev,
 #endif
 {
 	FAR struct amebalite_spidev_s *priv = (FAR struct amebalite_spidev_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		spiinfo("ERROR: priv NULL in amebalite_spi_exchange\n");
+		return;
+	}
 
 	spiinfo("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
 
@@ -1084,7 +1089,10 @@ void amebalite_spi_clock_disable(uint32_t base)
 static void amebalite_spi_bus_initialize(struct amebalite_spidev_s *priv)
 {
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		spiinfo("ERROR: priv NULL in amebalite_spi_bus_initialize\n");
+		return;
+	}
 	DEBUGASSERT(&priv->spi_object);
 
 	priv->spi_object.spi_idx = priv->spi_idx;

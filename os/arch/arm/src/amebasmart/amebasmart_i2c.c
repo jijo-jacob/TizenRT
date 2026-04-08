@@ -921,7 +921,9 @@ static int amebasmart_i2c_isr(int irq, void *context, FAR void *arg)
 int amebasmart_i2c_init(FAR struct amebasmart_i2c_priv_s *priv)
 {
 	/* Power-up and configure GPIOs */
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	DEBUGASSERT(priv->i2c_object);
 	priv->i2c_object->i2c_idx = 0;
 	priv->i2c_object->I2Cx = NULL;
@@ -952,7 +954,9 @@ int amebasmart_i2c_init(FAR struct amebasmart_i2c_priv_s *priv)
 int amebasmart_i2c_deinit(FAR struct amebasmart_i2c_priv_s *priv)
 {
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 #ifndef CONFIG_I2C_POLLED
 	up_disable_irq(priv->config->irq);
@@ -1215,7 +1219,9 @@ int up_i2cuninitialize(FAR struct i2c_dev_s *dev)
 	FAR struct amebasmart_i2c_priv_s *priv = (struct amebasmart_i2c_priv_s *)dev;
 	irqstate_t flags;
 
-	DEBUGASSERT(dev);
+	if (!dev) {
+		return -ENODEV;
+	}
 
 	/* Decrement reference count and check for underflow */
 

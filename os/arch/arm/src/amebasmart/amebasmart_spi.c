@@ -1044,7 +1044,9 @@ static uint16_t amebasmart_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
 	FAR struct amebasmart_spidev_s *priv = (FAR struct amebasmart_spidev_s *)dev;
 
 	uint16_t ret = 0;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return 0;
+	}
 
 	if (priv->role == AMEBASMART_SPI_MASTER) {
 
@@ -1092,7 +1094,10 @@ static void amebasmart_spi_exchange(FAR struct spi_dev_s *dev,
 				size_t nwords)
 {
 	FAR struct amebasmart_spidev_s *priv = (FAR struct amebasmart_spidev_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR:priv is NULL in amebasmart_spi_exchange\n");
+		return;
+	}
 
 	spiinfo("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
 

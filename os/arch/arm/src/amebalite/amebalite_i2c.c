@@ -884,7 +884,9 @@ static int amebalite_i2c_isr(int irq, void *context, FAR void *arg)
 static int amebalite_i2c_init(FAR struct amebalite_i2c_priv_s *priv)
 {
 	/* Power-up and configure GPIOs */
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	DEBUGASSERT(!priv->i2c_object);
 	priv->i2c_object = (i2c_t *)kmm_malloc(sizeof(i2c_t));
 	DEBUGASSERT(priv->i2c_object);
@@ -915,7 +917,9 @@ static int amebalite_i2c_init(FAR struct amebalite_i2c_priv_s *priv)
 static int amebalite_i2c_deinit(FAR struct amebalite_i2c_priv_s *priv)
 {
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	DEBUGASSERT(priv->i2c_object);
 
 #ifndef CONFIG_I2C_POLLED

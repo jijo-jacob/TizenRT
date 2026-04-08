@@ -594,7 +594,9 @@ static int rtl8720e_log_up_ioctl(FAR struct uart_dev_s *dev, int cmd, unsigned l
 	int ret = OK;
 	struct termios *termiosp = (struct termios *)arg;
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	switch (cmd) {
 	case TCGETS:
 		if (!termiosp) {
@@ -675,7 +677,9 @@ static int rtl8720e_log_up_receive(struct uart_dev_s *dev, unsigned int *status)
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
 	uint32_t rxd;
 
-	DEBUGASSERT(priv);
+	if (!priv || !status) {
+		return -EINVAL;
+	}
 	rxd = up_lowgetc();
 	*status = rxd;
 
@@ -692,7 +696,10 @@ static int rtl8720e_log_up_receive(struct uart_dev_s *dev, unsigned int *status)
 static void rtl8720e_log_up_rxint(struct uart_dev_s *dev, bool enable)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_log_up_rxint\n");
+		return;
+	}
 	priv->rxint_enable = enable;
 	//if (enable)
 		//LOGUART_RxCmd(LOGUART_DEV, ENABLE);
@@ -711,7 +718,9 @@ static void rtl8720e_log_up_rxint(struct uart_dev_s *dev, bool enable)
 static bool rtl8720e_log_up_rxavailable(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 	return (LOGUART_Readable());
 }
 
@@ -726,7 +735,10 @@ static bool rtl8720e_log_up_rxavailable(struct uart_dev_s *dev)
 static void rtl8720e_log_up_send(struct uart_dev_s *dev, int ch)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_log_up_send\n");
+		return;
+	}
 	/*write one byte to tx fifo*/
 	up_lowputc(ch);
 	priv->tx_level--;
@@ -743,7 +755,10 @@ static void rtl8720e_log_up_send(struct uart_dev_s *dev, int ch)
 static void rtl8720e_log_up_txint(struct uart_dev_s *dev, bool enable)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_log_up_txint\n");
+		return;
+	}
 	priv->txint_enable = enable;
 
 	if (enable)
@@ -764,7 +779,9 @@ static void rtl8720e_log_up_txint(struct uart_dev_s *dev, bool enable)
 static bool rtl8720e_log_up_txready(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 
 	//LOGUART_TypeDef *UARTLOG = LOGUART_DEV;
 	//return (UARTLOG->LOGUART_UART_LSR & LOG_UART_IDX_FLAG[2].not_full);
@@ -783,7 +800,9 @@ static bool rtl8720e_log_up_txready(struct uart_dev_s *dev)
 static bool rtl8720e_log_up_txempty(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 
 	LOGUART_TypeDef *UARTLOG = LOGUART_DEV;
 	return (UARTLOG->LOGUART_UART_LSR & LOG_UART_IDX_FLAG[2].empty);
@@ -802,7 +821,9 @@ static bool rtl8720e_log_up_txempty(struct uart_dev_s *dev)
 static int rtl8720e_up_setup(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	DEBUGASSERT(!sdrv[uart_index_get(priv->tx)]);
 	sdrv[uart_index_get(priv->tx)] = (serial_t *)kmm_malloc(sizeof(serial_t));
 	DEBUGASSERT(sdrv[uart_index_get(priv->tx)]);
@@ -842,7 +863,9 @@ static int rtl8720e_up_setup(struct uart_dev_s *dev)
 static int rtl8720e_up_setup_pin(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	serial_pin_init(priv->tx, priv->rx);
 	return OK;
 }
@@ -859,7 +882,10 @@ static int rtl8720e_up_setup_pin(struct uart_dev_s *dev)
 static void rtl8720e_up_shutdown(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_up_shutdown\n");
+		return;
+	}
 	DEBUGASSERT(sdrv[uart_index_get(priv->tx)]);
 	serial_free(sdrv[uart_index_get(priv->tx)]);
 	rtw_free(sdrv[uart_index_get(priv->tx)]);
@@ -898,7 +924,9 @@ static int rtl8720e_up_attach(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
 	int ret = 0;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	serial_irq_handler(sdrv[uart_index_get(priv->tx)], rtl8720e_uart_irq, (uint32_t) dev);
 	return ret;
 }
@@ -916,7 +944,10 @@ static int rtl8720e_up_attach(struct uart_dev_s *dev)
 static void rtl8720e_up_detach(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_up_detach\n");
+		return;
+	}
 	serial_irq_handler(sdrv[uart_index_get(priv->tx)], NULL, 0);
 }
 
@@ -935,7 +966,9 @@ static int rtl8720e_up_ioctl(FAR struct uart_dev_s *dev, int cmd, unsigned long 
 	int ret = OK;
 	struct termios *termiosp = (struct termios *)arg;
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 	switch (cmd) {
 	case TCGETS:
 		if (!termiosp) {
@@ -1022,7 +1055,9 @@ static int rtl8720e_up_receive(struct uart_dev_s *dev, unsigned int *status)
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
 	uint32_t rxd;
 
-	DEBUGASSERT(priv);
+	if (!priv || !status) {
+		return -EINVAL;
+	}
 	rxd = serial_getc(sdrv[uart_index_get(priv->tx)]);
 	*status = rxd;
 
@@ -1039,7 +1074,10 @@ static int rtl8720e_up_receive(struct uart_dev_s *dev, unsigned int *status)
 static void rtl8720e_up_rxint(struct uart_dev_s *dev, bool enable)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_up_rxint\n");
+		return;
+	}
 	priv->rxint_enable = enable;
 	serial_irq_set(sdrv[uart_index_get(priv->tx)], RxIrq, enable);	// 1= ENABLE
 }
@@ -1055,7 +1093,9 @@ static void rtl8720e_up_rxint(struct uart_dev_s *dev, bool enable)
 static bool rtl8720e_up_rxavailable(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 	return (serial_readable(sdrv[uart_index_get(priv->tx)]));
 }
 
@@ -1070,7 +1110,10 @@ static bool rtl8720e_up_rxavailable(struct uart_dev_s *dev)
 static void rtl8720e_up_send(struct uart_dev_s *dev, int ch)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_up_send\n");
+		return;
+	}
 	/*write one byte to tx fifo*/
 	serial_putc(sdrv[uart_index_get(priv->tx)], ch);
 	priv->tx_level--;
@@ -1087,7 +1130,10 @@ static void rtl8720e_up_send(struct uart_dev_s *dev, int ch)
 static void rtl8720e_up_txint(struct uart_dev_s *dev, bool enable)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		lldbg("ERROR: priv NULL in rtl8720e_up_txint\n");
+		return;
+	}
 	priv->txint_enable = enable;
 	serial_irq_set(sdrv[uart_index_get(priv->tx)], TxIrq, enable);
 	if (enable)
@@ -1105,7 +1151,9 @@ static void rtl8720e_up_txint(struct uart_dev_s *dev, bool enable)
 static bool rtl8720e_up_txready(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 
 	return priv->tx_level;
 }
@@ -1121,7 +1169,9 @@ static bool rtl8720e_up_txready(struct uart_dev_s *dev)
 static bool rtl8720e_up_txempty(struct uart_dev_s *dev)
 {
 	struct rtl8720e_up_dev_s *priv = (struct rtl8720e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 	return (serial_writable(sdrv[uart_index_get(priv->tx)]));
 }
 

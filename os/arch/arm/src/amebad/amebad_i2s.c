@@ -341,7 +341,10 @@ static struct amebad_i2s_s *g_i2sdevice[I2S_NUM_MAX] = {NULL};
 
 static void i2s_txdma_callback(struct amebad_i2s_s* priv, int result)
 {
-	DEBUGASSERT(priv != NULL);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_txdma_callback\n");
+		return;
+	}
 
 	/* Cancel the watchdog timeout */
 
@@ -356,7 +359,10 @@ static void i2s_txdma_callback(struct amebad_i2s_s* priv, int result)
 static void i2s_txdma_timeout(int argc, uint32_t arg)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)arg;
-	DEBUGASSERT(priv != NULL);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_txdma_timeout\n");
+		return;
+	}
 
 	/* Then schedule completion of the transfer to occur on the worker thread.
 	 * Set the result with -ETIMEDOUT.
@@ -468,7 +474,10 @@ static void i2s_tx_worker(void *arg)
 	struct amebad_buffer_s *bfcontainer;
 	irqstate_t flags;
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_tx_worker\n");
+		return;
+	}
 
 	/* When the transfer was started, the active buffer containers were removed
 	 * from the tx.pend queue and saved in the tx.act queue.  We get here when the
@@ -638,7 +647,9 @@ static int i2s_send(struct i2s_dev_s *dev, struct ap_buffer_s *apb, i2s_callback
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
 
-	DEBUGASSERT(priv && apb);
+	if (!priv || !apb) {
+		return -EINVAL;
+	}
 
 	// i2sinfo("[I2S TX] apb=%p nbytes=%d samp=%p arg=%p timeout=%d\n", apb, apb->nbytes - apb->curbyte, apb->samp, arg, timeout);
 	i2s_dump_buffer("Sending", &apb->samp[apb->curbyte], apb->nbytes - apb->curbyte);
@@ -762,7 +773,10 @@ void i2s_transfer_tx_handleirq(void *data, char *pbuf)
 
 static void i2s_rxdma_callback(struct amebad_i2s_s* priv, int result)
 {
-	DEBUGASSERT(priv != NULL);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_rxdma_callback\n");
+		return;
+	}
 
 	/* Cancel the watchdog timeout */
 
@@ -777,7 +791,10 @@ static void i2s_rxdma_callback(struct amebad_i2s_s* priv, int result)
 static void i2s_rxdma_timeout(int argc, uint32_t arg)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)arg;
-	DEBUGASSERT(priv != NULL);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_rxdma_timeout\n");
+		return;
+	}
 
 	/* Timeout: set the result to -ETIMEDOUT. */
 	i2s_rx_schedule(priv, -ETIMEDOUT);
@@ -856,7 +873,10 @@ static void i2s_rx_worker(void *arg)
 	struct amebad_buffer_s *bfcontainer;
 	irqstate_t flags;
 
-	DEBUGASSERT(priv);
+	if (!priv) {
+		i2serr("ERROR: priv NULL in i2s_rx_worker\n");
+		return;
+	}
 
 	/* When the transfer was started, the active buffer containers were removed
 	 * from the rx.pend queue and saved in the rx.act queue.  We get here when the
@@ -1434,7 +1454,9 @@ static void i2s_exclsem_take(struct amebad_i2s_s *priv)
 static int i2s_pause(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 #if defined(I2S_HAVE_TX) && (0 < I2S_HAVE_TX)
 	if (dir == I2S_TX && priv->txenab) {
@@ -1468,7 +1490,9 @@ static int i2s_pause(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 static int i2s_resume(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 #if defined(I2S_HAVE_TX) && (0 < I2S_HAVE_TX)
 	if (dir == I2S_TX && priv->txenab) {
@@ -1502,7 +1526,9 @@ static int i2s_resume(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 static int i2s_stop_transfer(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 #if defined(I2S_HAVE_TX) && (0 < I2S_HAVE_TX)
 	if (dir == I2S_TX) {
@@ -1524,7 +1550,9 @@ static int i2s_stop(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
 	irqstate_t flags;
 	struct amebad_buffer_s *bfcontainer;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 	i2s_exclsem_take(priv);
 
@@ -1607,7 +1635,9 @@ static int i2s_stop(struct i2s_dev_s *dev, i2s_ch_dir_t dir)
 static int i2s_err_cb_register(struct i2s_dev_s *dev, i2s_err_cb_t cb, void *arg)
 {
 	struct amebad_i2s_s *priv = (struct amebad_i2s_s *)dev;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return -ENODEV;
+	}
 
 	priv->err_cb = cb;
 	priv->err_cb_arg = arg;

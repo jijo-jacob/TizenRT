@@ -129,7 +129,6 @@ const struct watchdog_ops_s g_wdgops = {
 static int amebasmart_wdg_start(FAR struct watchdog_lowerhalf_s *lower)
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}
@@ -162,7 +161,6 @@ static int amebasmart_wdg_start(FAR struct watchdog_lowerhalf_s *lower)
 static int amebasmart_wdg_stop(FAR struct watchdog_lowerhalf_s *lower)
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}
@@ -193,7 +191,6 @@ static int amebasmart_wdg_stop(FAR struct watchdog_lowerhalf_s *lower)
 static int amebasmart_wdg_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}
@@ -228,7 +225,6 @@ static int amebasmart_wdg_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 static int amebasmart_wdg_getstatus(FAR struct watchdog_lowerhalf_s *lower, FAR struct watchdog_status_s *status)
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}
@@ -283,7 +279,6 @@ static int amebasmart_wdg_getstatus(FAR struct watchdog_lowerhalf_s *lower, FAR 
 static int amebasmart_wdg_settimeout(FAR struct watchdog_lowerhalf_s *lower, uint32_t timeout)
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}
@@ -328,7 +323,6 @@ static xcpt_t amebasmart_wdg_capture(FAR struct watchdog_lowerhalf_s *lower, xcp
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
 	xcpt_t oldhandler;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return NULL;
 	}
@@ -383,7 +377,6 @@ static int amebasmart_wdg_ioctl(FAR struct watchdog_lowerhalf_s *lower, int cmd,
 {
 	struct amebasmart_wdg_lowerhalf_s *priv = (struct amebasmart_wdg_lowerhalf_s *)lower;
 	uint32_t time_elapse;
-	DEBUGASSERT(priv);
 	if (!priv) {
 		return -ENODEV;
 	}

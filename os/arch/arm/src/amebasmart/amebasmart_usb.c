@@ -265,7 +265,10 @@ static int rtl8730e_log_usb_receive(struct uart_dev_s *dev, unsigned int *status
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
 	uint8_t rxd;
 	
-	DEBUGASSERT(priv);
+	if (!priv) {
+		*status = 0;
+		return -ENODEV;
+	}
 	while(!received_flag){
 
 	}
@@ -315,7 +318,10 @@ static bool rtl8730e_log_usb_rxavailable(struct uart_dev_s *dev)
 static void rtl8730e_log_usb_send(struct uart_dev_s *dev, int ch)
 {
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		udbg("ERROR: priv NULL in rtl8730e_log_usb_send\n");
+		return;
+	}
 	int fd;
 	
 	usbd_cdc_acm_transmit(&ch, 1);
@@ -333,7 +339,10 @@ static void rtl8730e_log_usb_send(struct uart_dev_s *dev, int ch)
 static void usb_xmitchars(FAR uart_dev_t *dev)
 {
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		udbg("ERROR: priv NULL in usb_xmitchars\n");
+		return;
+	}
 	uint16_t nbytes = 0;
 	uint8_t *buffer = NULL;
 	buffer = (uint8_t *)rtw_zmalloc(CONFIG_CDC_ACM_BULK_IN_XFER_SIZE);
@@ -421,7 +430,10 @@ static void usb_xmitchars(FAR uart_dev_t *dev)
 static void rtl8730e_log_usb_txint(struct uart_dev_s *dev, bool enable)
 {
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		udbg("ERROR: priv NULL in rtl8730e_log_usb_txint\n");
+		return;
+	}
 	priv->txint_enable = enable;
 	if (enable) {
 		// uart_xmitchars(dev);
@@ -440,8 +452,10 @@ static void rtl8730e_log_usb_txint(struct uart_dev_s *dev, bool enable)
 static bool rtl8730e_log_usb_txready(struct uart_dev_s *dev)
 {
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
 
+	if (!priv) {
+		return false;
+	}
 	return 1;
 
 }
@@ -457,7 +471,9 @@ static bool rtl8730e_log_usb_txready(struct uart_dev_s *dev)
 static bool rtl8730e_log_usb_txempty(struct uart_dev_s *dev)
 {
 	struct rtl8730e_up_dev_s *priv = (struct rtl8730e_up_dev_s *)dev->priv;
-	DEBUGASSERT(priv);
+	if (!priv) {
+		return false;
+	}
 
 	return 1;
 }
@@ -725,7 +741,10 @@ static int amebasmart_usbd_cdc_acm_init(struct amebasmart_usbdev_s *priv, usbd_c
 static amebasmart_usbd_cdc_acm_deinit(struct amebasmart_usbdev_s *priv)
 {
 	struct amebasmart_usbdev_s *dev = (struct amebasmart_usbdev_s *)priv;
-	DEBUGASSERT(dev);
+	if (!priv) {
+		udbg("ERROR: priv NULL in amebasmart_usbd_cdc_acm_deinit\n");
+		return;
+	}
 
 	usbd_cdc_acm_deinit();
 }
@@ -749,8 +768,10 @@ static int amebasmart_usbd_init(struct amebasmart_usbdev_s *priv, usbd_config_t 
 int amebasmart_up_usbinitialize(struct amebasmart_usbdev_s *priv)
 {
 	struct amebasmart_usbdev_s *dev = (struct amebasmart_usbdev_s *)priv;
-	DEBUGASSERT(dev);
 	
+	if (!priv) {
+		return -EINVAL;
+	}
 	int ret = -1;
 
 	ret = amebasmart_usbd_init(dev, &amebasmart_cdc_acm_cfg);
