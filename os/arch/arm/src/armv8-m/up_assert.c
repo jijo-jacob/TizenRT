@@ -77,6 +77,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <debug.h>
+#include <errno.h>
 
 #include <tinyara/irq.h>
 #include <tinyara/arch.h>
@@ -87,6 +88,7 @@
 #include <tinyara/sched.h>
 
 #include <tinyara/mm/mm.h>
+#include <tinyara/assertmode.h>
 
 #ifdef CONFIG_APP_BINARY_SEPARATION
 #include <tinyara/binfmt/elf.h>
@@ -96,7 +98,7 @@
 #include <arch/reboot_reason.h>
 #endif
 #include "sched/sched.h"
-#ifdef CONFIG_BOARD_ASSERT_AUTORESET
+#if defined(CONFIG_BOARD_ASSERT_AUTORESET) || defined(CONFIG_BOARD_ASSERT_SYSTEM_HALT)
 #include <sys/boardctl.h>
 #endif
 #ifdef CONFIG_BINMGR_RECOVERY
@@ -162,6 +164,41 @@ char assert_info_str[CONFIG_STDIO_BUFFER_SIZE] = {'\0', };
 /* Variable to check the recursive abort */
 static int state = NORMAL_STATE;
 
+/****************************************************************************
+ * Runtime Assert Behavior Control
+ ****************************************************************************/
+#ifdef CONFIG_ENABLE_ASSERTMODE
+/* Runtime assert behavior control (static — access via getter/setter only)
+ * 0 = auto reset (default, matches CONFIG_BOARD_ASSERT_AUTORESET)
+ * 1 = system halt with watchdog kick (default, when matches CONFIG_BOARD_ASSERT_SYSTEM_HALT)
+ * Valid for current boot only - resets to default on reboot
+ */
+#if defined (CONFIG_BOARD_ASSERT_AUTORESET)
+static volatile int g_assert_behavior = ASSERT_BEHAVIOR_AUTORESET;
+#elif defined (CONFIG_BOARD_ASSERT_SYSTEM_HALT)
+static volatile int g_assert_behavior = ASSERT_BEHAVIOR_HALT;
+#else
+#error AUTORESET or HALT is not selected.
+#endif
+
+/* Watchdog kick interval in ms during halt */
+#define ASSERT_HALT_WDOG_KICK_INTERVAL 5000
+
+int assert_behavior_get(void)
+{
+	return g_assert_behavior;
+}
+
+int assert_behavior_set(int mode)
+{
+	if (mode != ASSERT_BEHAVIOR_AUTORESET && mode != ASSERT_BEHAVIOR_HALT) {
+		return -EINVAL;
+	}
+
+	g_assert_behavior = mode;
+	return OK;
+}
+#endif
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -468,7 +505,32 @@ static void up_dumpstate(void)
 /****************************************************************************
  * Name: _up_assert
  ****************************************************************************/
+#ifdef CONFIG_ENABLE_ASSERTMODE
+static void _up_assert(int errorcode)
+{
+	if (assert_behavior_get() == ASSERT_BEHAVIOR_AUTORESET) {
+                boardctl(BOARDIOC_RESET, EXIT_SUCCESS);
+        }
+        else if (assert_behavior_get() == ASSERT_BEHAVIOR_HALT) {
+                (void)irqsave();
+		lldbg("System halted and active...\n");
+                for (;;) {
+                        /* Kick hardware watchdog to allow debug time */
+#ifdef CONFIG_WATCHDOG_FOR_IRQ
+                        up_wdog_keepalive();
+#endif
+                        up_mdelay(ASSERT_HALT_WDOG_KICK_INTERVAL);
+#ifdef CONFIG_ARCH_LEDS
+                        //board_led_on(LED_PANIC);
+                        up_mdelay(250);
+                        //board_led_off(LED_PANIC);
+                        up_mdelay(250);
+#endif
+                }
+	}
+}
 
+#else
 static void _up_assert(int errorcode)
 {
 #ifdef CONFIG_BOARD_ASSERT_AUTORESET
@@ -495,6 +557,7 @@ static void _up_assert(int errorcode)
 #endif
 #endif /* CONFIG_BOARD_ASSERT_AUTORESET */
 }
+#endif
 
 /****************************************************************************
  * Name: check_heap_corrupt
