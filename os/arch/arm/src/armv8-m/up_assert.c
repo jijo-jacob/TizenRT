@@ -77,6 +77,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <debug.h>
+#include <errno.h>
 
 #include <tinyara/irq.h>
 #include <tinyara/arch.h>
@@ -87,6 +88,7 @@
 #include <tinyara/sched.h>
 
 #include <tinyara/mm/mm.h>
+#include <tinyara/assertmode.h>
 
 #ifdef CONFIG_APP_BINARY_SEPARATION
 #include <tinyara/binfmt/elf.h>
@@ -96,9 +98,7 @@
 #include <arch/reboot_reason.h>
 #endif
 #include "sched/sched.h"
-#ifdef CONFIG_BOARD_ASSERT_AUTORESET
 #include <sys/boardctl.h>
-#endif
 #ifdef CONFIG_BINMGR_RECOVERY
 #include <stdbool.h>
 #include <unistd.h>
@@ -469,31 +469,40 @@ static void up_dumpstate(void)
  * Name: _up_assert
  ****************************************************************************/
 
+static void assert_halt(void)
+{
+	(void)irqsave();
+	for (;;) {
+#ifdef CONFIG_ARCH_LEDS
+		//board_led_on(LED_PANIC);
+		up_mdelay(250);
+		//board_led_off(LED_PANIC);
+		up_mdelay(250);
+#endif
+	}
+}
+
 static void _up_assert(int errorcode)
 {
-#ifdef CONFIG_BOARD_ASSERT_AUTORESET
-	boardctl(BOARDIOC_RESET, EXIT_SUCCESS);
-#else
-#ifndef CONFIG_BOARD_ASSERT_SYSTEM_HALT
-	/* Are we in an interrupt handler or the idle task? */
+	switch (g_assert_behavior) {
+	case ASSERT_BEHAVIOR_AUTORESET:
+		boardctl(BOARDIOC_RESET, EXIT_SUCCESS);
+		break;
 
-	if (current_regs || (this_task())->pid == 0) {
-#endif
-		(void)irqsave();
-		for (;;) {
-#ifdef CONFIG_ARCH_LEDS
-			//board_led_on(LED_PANIC);
-			up_mdelay(250);
-			//board_led_off(LED_PANIC);
-			up_mdelay(250);
-#endif
+	case ASSERT_BEHAVIOR_HALT:
+		assert_halt();
+		break;
+
+	case ASSERT_BEHAVIOR_NOT_SELECTED:
+	default:
+		/* Are we in an interrupt handler or the idle task? */
+		if (current_regs || (this_task())->flink == NULL) {
+			assert_halt();
+		} else {
+			exit(errorcode);
 		}
-#ifndef CONFIG_BOARD_ASSERT_SYSTEM_HALT
-	} else {
-		exit(errorcode);
+		break;
 	}
-#endif
-#endif /* CONFIG_BOARD_ASSERT_AUTORESET */
 }
 
 /****************************************************************************
