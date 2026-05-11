@@ -61,6 +61,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <debug.h>
+#include <errno.h>
 
 #include <tinyara/irq.h>
 #include <tinyara/arch.h>
@@ -72,6 +73,7 @@
 #include <tinyara/sched.h>
 
 #include <tinyara/mm/mm.h>
+#include <tinyara/assertmode.h>
 
 #ifdef CONFIG_ARCH_USE_MMU
 #include <tinyara/mmu.h>
@@ -86,9 +88,7 @@
 #include <arch/reboot_reason.h>
 #endif
 #include "sched/sched.h"
-#ifdef CONFIG_BOARD_ASSERT_AUTORESET
 #include <sys/boardctl.h>
-#endif
 #ifdef CONFIG_BINMGR_RECOVERY
 #include <stdbool.h>
 #include <unistd.h>
@@ -444,39 +444,48 @@ static void up_dumpstate(struct tcb_s *fault_tcb, uint32_t asserted_location)
  * Name: arm_assert
  ****************************************************************************/
 
-static void arm_assert(void)
+static void assert_halt(void)
 {
-#ifdef CONFIG_BOARD_ASSERT_AUTORESET
-	boardctl(BOARDIOC_RESET, EXIT_SUCCESS);
-#else
-#ifndef CONFIG_BOARD_ASSERT_SYSTEM_HALT
-	/* Are we in an interrupt handler or the idle task? */
-
-	if (CURRENT_REGS || (this_task())->flink == NULL) {
-#endif
-		/* Disable interrupts on this CPU */
-		irqsave();
+	/* Disable interrupts on this CPU */
+	irqsave();
 
 #ifdef CONFIG_SMP
-		/* Try (again) to stop activity on other CPUs */
-		spin_trylock(&g_cpu_irqlock);
+	/* Try (again) to stop activity on other CPUs */
+	spin_trylock(&g_cpu_irqlock);
 #endif
 
-		for (;;) {
+	for (;;) {
 #ifdef CONFIG_ARCH_LEDS
-			/* FLASH LEDs a 2Hz */
-			board_autoled_on(LED_PANIC);
-			up_mdelay(250);
-			board_autoled_off(LED_PANIC);
-			up_mdelay(250);
+		/* FLASH LEDs a 2Hz */
+		board_autoled_on(LED_PANIC);
+		up_mdelay(250);
+		board_autoled_off(LED_PANIC);
+		up_mdelay(250);
 #endif
-		}
-#ifndef CONFIG_BOARD_ASSERT_SYSTEM_HALT
-	} else {
-		exit(errorcode);
 	}
-#endif
-#endif							/* CONFIG_BOARD_ASSERT_AUTORESET */
+}
+
+static void arm_assert(void)
+{
+	switch (assert_behavior_get()) {
+	case ASSERT_BEHAVIOR_AUTORESET:
+		boardctl(BOARDIOC_RESET, EXIT_SUCCESS);
+		break;
+
+	case ASSERT_BEHAVIOR_HALT:
+		assert_halt();
+		break;
+
+	case ASSERT_BEHAVIOR_NOT_SELECTED:
+	default:
+		/* Are we in an interrupt handler or the idle task? */
+		if (CURRENT_REGS || (this_task())->flink == NULL) {
+			assert_halt();
+		} else {
+			exit(EXIT_FAILURE);
+		}
+		break;
+	}
 }
 
 /****************************************************************************
