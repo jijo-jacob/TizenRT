@@ -41,6 +41,7 @@
 #include <tinyara/sched.h>
 
 #include "sched/sched.h"
+#include "clock/clock.h"
 
 
 /****************************************************************************
@@ -107,26 +108,44 @@ int sched_cpuoff(int cpu)
 
 	if (CPU_ISSET(cpu, &g_active_cpus_mask)) {
 		/* Lock the scheduler and disable interrupts to ensure atomicity
-		 * throughout this critical operation.
-		 */
+		* throughout this critical operation.
+		*/
 		flags = enter_critical_section();
 
 		tcb = current_task(cpu);
 		if (tcb->pid != cpu) {
-			/* Trying to turnoff a busy CPU, error case */
-			ret = -EBUSY;
+			/* CPU is busy - migrate tasks first */
+			
+			/* Step 1: Clear CPU from active mask (precondition for migration) */
+			CPU_CLR(cpu, &g_active_cpus_mask);
+			
+			/* Step 2: Release critical section - sched_migrate_tasks handles its own */
 			leave_critical_section(flags);
-			goto errout_with_global_lock;
+			
+			/* Step 3: Migrate tasks from the CPU */
+			ret = sched_migrate_tasks(cpu);
+			if (ret < 0) {
+				/* Migration failed - restore mask and return error */
+				flags = enter_critical_section();
+				CPU_SET(cpu, &g_active_cpus_mask);
+				leave_critical_section(flags);
+				slldbg("ERROR: Failed to migrate tasks from CPU%d: %d\n", cpu, ret);
+				goto errout_with_global_lock;
+			}
+			/* Re-acquire critical section for up_cpu_off atomicity */
+			flags = enter_critical_section();
+		} else {
+			/* CPU is idle, just clear the mask */
+			CPU_CLR(cpu, &g_active_cpus_mask);
 		}
 
-		/* Update the active CPUs mask to indicate that the offline CPU is no longer active */
-		CPU_CLR(cpu, &g_active_cpus_mask);
-		//Call up_cpu_off function
+		/* Call up_cpu_off function to power off the CPU */
 		ret = up_cpu_off(cpu);
 		if (ret != 0) {
 			CPU_SET(cpu, &g_active_cpus_mask);
+		} else {
+			slldbg("CPU%d is turned off successfully\n", cpu);
 		}
-		slldbg("CPU%d is turned off successfully\n", cpu);
 		leave_critical_section(flags);
 	} else {
 		slldbg("Already desired state (OFF), operation not supported\n");
