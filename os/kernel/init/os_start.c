@@ -82,6 +82,9 @@
 #include <tinyara/mmu.h>
 #endif
 #include <tinyara/sched_note.h>
+#ifdef CONFIG_PRETTY_SHELL
+#include <tinyara/pretty_shell.h>
+#endif
 
 #include  "sched/sched.h"
 #include  "signal/signal.h"
@@ -425,6 +428,11 @@ void os_start(void)
 	int i;
 
 	slldbg("Entry\n");
+
+#ifdef CONFIG_PRETTY_SHELL
+	/* Initialize Pretty Shell before any other kernel services */
+	pretty_shell_init();
+#endif
 
 	g_os_initstate = OSINIT_BOOT;
 
@@ -869,7 +877,6 @@ void os_start(void)
 		 * because they could not be freed in that execution context (for
 		 * example, if the memory was freed from an interrupt handler).
 		 */
-
 #ifndef CONFIG_SCHED_WORKQUEUE
 		/* We must have exclusive access to the memory manager to do this
 		 * BUT the idle task cannot wait on a semaphore.  So we only do
