@@ -82,6 +82,28 @@ extern void tash_stop(void);
 extern int tash_reboot(int argc, char **argv);
 #endif
 char *tash_read_input_line(int fd);
+
+#ifdef CONFIG_PRETTY_SHELL
+/* Pretty Shell control characters */
+#define PRETTY_CHAR         0x10  /* Toggle pretty mode, Ctrl-P */
+#define PRETTY_CHAR_DISABLE 0x06  /* Disable pretty mode, Ctrl-F */
+#define PRETTY_PRESS_MS     500   /* Double-press interval in ms */
+
+/* Pretty Shell states */
+enum tash_pretty_mode {
+	TASH_PRETTY_PERMIT_ALL = 0,    /* All output permitted */
+	TASH_PRETTY_PERMIT_PRINTK,      /* Only kernel debug permitted */
+	TASH_PRETTY_PERMIT_NONE,        /* No output permitted */
+};
+
+/* Pretty Shell API */
+void tash_pretty_init(void);
+int tash_pretty_handle_char(char c);
+int tash_pretty_is_output_blocked(void);
+int tash_pretty_get_mode(void);
+void tash_pretty_reset(void);
+#endif /* CONFIG_PRETTY_SHELL */
+
 void tash_check_security(int fd);
 #ifdef CONFIG_TASH_SCRIPT
 extern int tash_script(int argc, char **args);

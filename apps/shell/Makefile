@@ -43,6 +43,11 @@ ifeq ($(CONFIG_SECURED_TASH),y)
 CSRCS += tash_security.c
 endif
 
+ifeq ($(CONFIG_PRETTY_SHELL),y)
+CSRCS += tash_pretty.c
+endif
+
+
 MAINSRC = tash_main.c
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))

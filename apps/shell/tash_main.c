@@ -169,9 +169,19 @@ char *tash_read_input_line(int fd)
 			/* Ensure board does not go to sleep for TASH_PM_TIMEDSUSPEND_TIME_IN_MS*/
 			tash_pm_timedsuspend(TASH_PM_TIMEDSUSPEND_TIME_IN_MS);
 #endif
-			for (char_idx = 0; char_idx < nbytes; char_idx++) {
+		for (char_idx = 0; char_idx < nbytes; char_idx++) {
 
-				if ((CURR_CHAR == ASCII_BS) || (CURR_CHAR == ASCII_DEL)) {
+#ifdef CONFIG_PRETTY_SHELL
+			/* Check for Pretty Shell control character (Ctrl-P / Ctrl-F) */
+			if (tash_pretty_handle_char(CURR_CHAR)) {
+				/* Character was consumed by pretty shell handler */
+				SKIP_NEXT_CHAR(1);
+				continue;
+			}
+#endif
+
+			if ((CURR_CHAR == ASCII_BS) || (CURR_CHAR == ASCII_DEL)) {
+
 					/* Back space or Del key - delete previous character */
 
 					int valid_char_pos = pos + 1;
@@ -360,8 +370,13 @@ static int tash_main(int argc, char *argv[])
 	tash_running = TRUE;
 	is_autocomplete_enabled = TRUE;
 
+#ifdef CONFIG_PRETTY_SHELL
+	tash_pretty_init();
+#endif
+
 	do {
 		nbytes = write(fd, (const void *)TASH_PROMPT, sizeof(TASH_PROMPT));
+
 		if (nbytes <= 0) {
 			shdbg("TASH: prompt is not displayed (errno = %d)\n", get_errno());
 #ifndef CONFIG_DISABLE_SIGNALS

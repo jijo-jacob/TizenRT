@@ -72,7 +72,25 @@
 #include <tinyara/semaphore.h>
 #include <tinyara/fs/fs.h>
 #include <tinyara/serial/serial.h>
+#include <tinyara/sched.h>
 #include <tinyara/fs/ioctl.h>
+#ifdef CONFIG_PRETTY_SHELL
+#include <tinyara/pretty_shell.h>
+
+/* Pretty Shell state variable - defined in driver layer for direct access */
+/* g_pretty_shell_blocked is defined in os/kernel/pretty_shell.c */
+extern int g_pretty_shell_blocked;  /* 0=PERMIT_ALL, 1=PERMIT_PRINTK, 2=PERMIT_NONE */
+#endif
+
+
+
+
+
+
+
+
+
+
 #ifdef CONFIG_LOG_DUMP
 #include <tinyara/log_dump/log_dump.h>
 #include <tinyara/log_dump/log_dump_internal.h>
@@ -419,10 +437,47 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
 	int ret;
 	char ch;
 
+#ifdef CONFIG_PRETTY_SHELL
+	/* Pretty Shell: suppress console output when pretty mode is active.
+	 * Only the console device is affected; other UART devices are not.
+	 * Interrupt context output is always allowed to ensure panic/crash
+	 * messages are visible.
+	 *
+	 * g_pretty_shell_blocked values:
+	 *   0 = PERMIT_ALL: Allow all output
+	 *   1 = PERMIT_PRINTK: Block userland output only
+	 *   2 = PERMIT_NONE: Block all output
+	 */
+	if (dev->isconsole && !up_interrupt_context()) {
+		/* Always allow TASH task output for shell interaction */
+		FAR struct tcb_s *tcb = sched_self();
+		bool is_tash = (tcb && tcb->name[0] != '\0' && strcmp(tcb->name, "tash") == 0);
+		bool is_kernel_work = (tcb && tcb->name[0] != '\0' &&
+		                       (strstr(tcb->name, "HPWORK") || strstr(tcb->name, "work")));
+		
+		if (!is_tash) {
+			/* Not TASH task, apply pretty shell suppression */
+			if (g_pretty_shell_blocked == 2) {
+				/* PERMIT_NONE: Block ALL output (including kernel work) */
+				return buflen;  /* Pretend we wrote everything */
+			} else if (g_pretty_shell_blocked == 1) {
+				/* PERMIT_PRINTK: Block userland only (allow kernel work) */
+				if (!is_kernel_work && getpid() != 0) {
+					return buflen;  /* Pretend we wrote everything */
+				}
+			}
+		}
+		/* TASH task: always allow output. Kernel work: allowed in PERMIT_PRINTK mode */
+	}
+#endif
+
+
+
 	/* We may receive console writes through this path from interrupt handlers and
 	 * from debug output in the IDLE task!  In these cases, we will need to do things
 	 * a little differently.
 	 */
+
 
 	if (up_interrupt_context() || getpid() == 0) {
 #ifdef CONFIG_SERIAL_REMOVABLE
@@ -947,6 +1002,52 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 		}
 		break;
 #endif							/* CONFIG_SERIAL_TERMIOS */
+
+#ifdef CONFIG_PRETTY_SHELL
+		case PSIOC_TOGGLE: {
+			/* Toggle pretty mode: 0 -> 1 -> 2 -> 0 */
+			g_pretty_shell_blocked = (g_pretty_shell_blocked + 1) % 3;
+			ret = OK;
+		}
+		break;
+
+		case PSIOC_SETMODE: {
+			/* Set pretty mode directly */
+			g_pretty_shell_blocked = (int)arg;
+			/* Debug: print mode value */
+			/* printf("[PRETTY] Mode set to %d\n", g_pretty_shell_blocked); */
+			ret = OK;
+		}
+		break;
+
+		case PSIOC_GETMODE: {
+			/* Get current pretty mode */
+			*(int *)arg = g_pretty_shell_blocked;
+			ret = OK;
+		}
+		break;
+
+		case PSIOC_RESET: {
+			/* Reset to PERMIT_ALL */
+			g_pretty_shell_blocked = 0;
+			ret = OK;
+		}
+		break;
+
+		case PSIOC_START_TEST: {
+			/* Start kernel test via ioctl */
+			pretty_shell_kernel_test_start();
+			ret = OK;
+		}
+		break;
+
+		case PSIOC_STOP_TEST: {
+			/* Stop kernel test via ioctl */
+			pretty_shell_kernel_test_stop();
+			ret = OK;
+		}
+		break;
+#endif							/* CONFIG_PRETTY_SHELL */
 		}
 	}
 #ifdef CONFIG_SERIAL_TERMIOS

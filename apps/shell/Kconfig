@@ -63,6 +63,19 @@ config TASH_SCRIPT
 		This suppors parsing and executing shell script.
 		See "sh" on TASH help command.
 
+config PRETTY_SHELL
+	bool "Enable Pretty Shell (Ctrl-P)"
+	default n
+	---help---
+		Enable pretty shell mode to suppress console output noise.
+		Usually all applications dump their output to common serial
+		and it is really hell to use shell.
+		- Pressing Ctrl-P you stop userland flood from all applications.
+		- Pressing Ctrl-P-P (double press within 500ms) disables all output.
+		- Pressing Ctrl-P once more time will enable everything again.
+		- Pressing Ctrl-F forces re-enable all output.
+
+
 config SECURED_TASH
 	bool "Enable Secure shell"
 	select NET_SECURITY_TLS
