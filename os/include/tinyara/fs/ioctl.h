@@ -68,6 +68,16 @@
  */
 
 #define _TIOCBASE       (0x0100)	/* Terminal I/O ioctl commands */
+
+/* Pretty Shell ioctl commands */
+#define _PSIOCBASE	(0x0200)	/* Pretty Shell ioctl commands */
+#define _PSIOC(nr)	_IOC(_PSIOCBASE, nr)
+#define PSIOC_TOGGLE	_PSIOC(0x01)	/* Toggle pretty mode */
+#define PSIOC_SETMODE	_PSIOC(0x02)	/* Set pretty mode */
+#define PSIOC_GETMODE	_PSIOC(0x03)	/* Get pretty mode */
+#define PSIOC_RESET	_PSIOC(0x04)	/* Reset to PERMIT_ALL */
+#define PSIOC_START_TEST	_PSIOC(0x05)	/* Start kernel test */
+#define PSIOC_STOP_TEST	_PSIOC(0x06)	/* Stop kernel test */
 #define _WDIOCBASE      (0x0200)	/* Watchdog driver ioctl commands */
 #define _FIOCBASE       (0x0300)	/* File system ioctl commands */
 #define _DIOCBASE       (0x0400)	/* Character driver ioctl commands */
